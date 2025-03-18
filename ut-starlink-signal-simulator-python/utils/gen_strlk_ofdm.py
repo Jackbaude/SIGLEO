@@ -16,6 +16,7 @@
 
 import numpy as np
 from scipy.signal import resample
+from gen_ofdm import gen_ofdm
 
 def gen_strlk_ofdm(s):
     """
@@ -67,8 +68,3 @@ def gen_strlk_ofdm(s):
     y = gen_ofdm(s)  # Calls the OFDM generator function
 
     return y
-
-# Placeholder function for genOFDM
-def gen_ofdm(s):
-    """ Generates a basic OFDM signal (placeholder for actual implementation). """
-    return np.random.randn(1056) + 1j * np.random.randn(1056)
