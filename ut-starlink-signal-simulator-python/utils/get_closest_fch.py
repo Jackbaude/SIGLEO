@@ -1,8 +1,5 @@
-''' Ported from Matlab to Python by Jack R. Tschetter on 03/13/2025.
-    The following key considerations were made.
-    Uses the same formula as MATLAB to compute the closest Starlink channel.
-    Ensures floating-point precision when calculating ch_idx.
-    Returns the nearest valid Starlink channel center frequency.
+''' get_closest_fch.py
+    Defines a function that calculates the closest Starlink OFDM channel to a given receiver frequency.
 '''
 
 def get_closest_fch(Fc):
