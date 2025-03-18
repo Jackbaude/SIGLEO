@@ -5,6 +5,9 @@
 import numpy as np
 
 def fft_acq_strlk(s):
+    ''' Debugging flags
+        TODO : I am unsure if these are meant to be in function scope or global scope. Matlab is confusing.
+    '''
     debugPltHT_enable = 0
     debugPltGrid_en = 0
     fontsize = 12
@@ -17,6 +20,12 @@ def fft_acq_strlk(s):
     fs = 240e6
     nk = 1/750*fs
 
+    '''TODO :
+        Ensure gen_pss, and gen_sss are implemented/converted correctly.
+        Ensure gen_pss and gen_sss are imported correctly into this file.
+        Ensure gen_pss, and gen_sss are used correctly in this file.
+    '''
+    
     pss = gen_pss()
     sss = gen_sss()
 
@@ -31,7 +40,7 @@ def fft_acq_strlk(s):
     if s['fsr'] != fs:
         tVec = np.arange(len(y)).reshape(-1, 1) / s['Fsr']
 
-        #TODO : This is the original Matlab line. I am unsure how to convert.
+        #TODO : This is the original Matlab line. I am unsure how to convert to Python.
         y = resample(y,tVec,Fs)
     buffer = 100
 
