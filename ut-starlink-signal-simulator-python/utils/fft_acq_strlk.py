@@ -29,9 +29,26 @@ def fft_acq_strlk(s):
     pss = gen_pss()
     sss = gen_sss()
 
-    #TODO : Might need to use np.concatenate instead.
+    ''' Concatenates the two signals vertically into a single column vector c.
+        This combined signal represents a known Starlink synchronization frame.
+        This was originally c = [PSS; SSS]; in Matlab.
+        TODO : Might need to use np.concatenate instead.
+    '''
     c = np.vstack((pss, sss))
+
+    ''' Assigns c to pkvec.
+        pkvec will store the known synchronization frame before zero padding is applied.
+        The original Matlab line was pkVec = c;
+        We use c.copy() though since Python passes by references whilst Matlab passes by value.
+    '''
     pkvec = c.copy()
+
+    ''' Zero padding
+        Extends c to match a required frame length nk.
+        If nk is greateer than length(c) this ensures c has exactly nk elements by appending zeros.
+        This is IMPORTANT as it ensures proper signal processing and alignment in acquisition algorithms.
+        The original Matlab line was c = [c; zeros(Nk - length(c), 1)];
+    '''
     c = np.vstack((c, np.zeros(nk - len(c), 1)))
 
     ''' Resample to full BW '''
@@ -40,7 +57,7 @@ def fft_acq_strlk(s):
     if s['fsr'] != fs:
         tVec = np.arange(len(y)).reshape(-1, 1) / s['Fsr']
 
-        #TODO : This is the original Matlab line. I am unsure how to convert to Python.
+        #TODO : This is still the original Matlab line. I am unsure how to convert to Python.
         y = resample(y,tVec,Fs)
     buffer = 100
 
