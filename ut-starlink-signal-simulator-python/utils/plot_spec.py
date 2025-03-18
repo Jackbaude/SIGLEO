@@ -1,0 +1,1 @@
+def plot_spec(data,tstart,tdur,fcr,fsr,fc,fs,nfft,stitle):

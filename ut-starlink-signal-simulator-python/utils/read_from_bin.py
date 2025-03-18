@@ -1,0 +1,1 @@
+def read_from_bin(filepath, fsr, tdur, tseek):

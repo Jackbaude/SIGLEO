@@ -1,0 +1,1 @@
+def get_valid_sc(fcr, fsr):

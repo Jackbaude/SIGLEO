@@ -1,0 +1,1 @@
+def plot_earth(fig, rx_lla):
