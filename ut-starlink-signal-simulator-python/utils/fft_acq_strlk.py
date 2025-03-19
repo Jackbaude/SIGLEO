@@ -2,6 +2,7 @@ import numpy as np
 from get_closest_fch import get_closest_fch
 from gen_pss import gen_pss
 from gen_sss import gen_sss
+from get_closest_fch import get_closest_fch
 
 def fft_acq_strlk(s):
     ''' Debugging flags
@@ -115,6 +116,37 @@ def fft_acq_strlk(s):
         This line was originally known = c(c ~= 0); in Matlab.
     '''
     known = c[c != 0]
+    nc = len(known)
+
+    ''' Compute the variance of the known array.
+        In MATLAB the default var() computes the sample variance (i.e. dividing by N-1 instead of N).
+        NumPy default is to compute the population variance (i.e., divide by N).
+        To match MATLAB we set ddof=1 (Delta Degrees of Freedom) in NumPy.
+        The line was originally sigma2_c = var(known); in Matlab.
+    '''
+    sigma2_c = np.var(known, ddof=1)
+
+    ''' Computes the total number of cells in a grid.
+        Return the number of elements in fdvec
+        Return the number of elements in tauvec.
+        Element wise multiply to get the total number of cells in the grid.
+        The line was originally Ngrid = length(fdvec) .* length(tauvec); in Matlab.
+    '''
+    ngrid = len(fdvec) * len(tauvec)  # Number of cells in the grid
+
+    ''' Compute the Fast Fourier Transform (FFT) of the signal. 
+        In MATLAB fft() computes the 1D FFT as default.
+        The line was originally C = fft(c); in Matlab.
+        TODO : np.fft.fft(c) expects a 1D array. If c needs to be a multi-dimensional array we may need to specify an axis.
+    '''
+    C = np.fft.fft(c)
+
+    ''' Return the number of elements in the vector y.
+        Divide by nk.
+        round down to the nearest integer.
+        The line was originally Nac = floor(length(y)/Nk); in Matlab.
+    '''
+    nac = np.floor(len(y) / nk).astype(int)
 
     # ------------------------------------ 
     # ----------- Generate acq. grid -----------
