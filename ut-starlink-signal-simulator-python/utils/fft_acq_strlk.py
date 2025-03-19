@@ -1,8 +1,10 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from get_closest_fch import get_closest_fch
 from gen_pss import gen_pss
 from gen_sss import gen_sss
 from get_closest_fch import get_closest_fch
+from scipy.signal import resample
 
 def fft_acq_strlk(s):
     ''' Debugging flags
@@ -148,18 +150,136 @@ def fft_acq_strlk(s):
     '''
     nac = np.floor(len(y) / nk).astype(int)
 
+    ''' Using numpy slicing.
+        MATLAB uses 1-based indexing, while Python uses 0-based indexing.
+        In Python, y[:Nac * Nk] extracts elements from index 0 to Nac * Nk - 1.
+        The line was originally y = y(1:(Nac*Nk)); in Matlab.
+    '''
+    y = y[:nac * nk]
+
+    #Initializations
+
+    ''' Create a 4x1 column vector.
+        MATLAB's zeros(4,1) creates a 4x1 column vector.
+        To achieve the same results with numpy use np.zeros((4, 1))
+        The line was originally values = zeros(4,1); in Matlab.
+    '''
+    values = np.zeros((4, 1))
+
+    ''' Create a 2D NumPy array of shape (len(fdvec), nk) filled with zeros.
+        np.zeros(shape) creates a NumPy array filled with zeros.
+        The shape argument specifies the dimensions of the array.
+        The number of rows in the array is defined by len(fdvec).
+        nk repressents the number of columns. It is assumed to be predefined (above) as an integer.
+        The line was originally grids = zeros(length(fdvec), Nk); in Matlab.
+    '''
+    grids = np.zeros(len(fdvec), nk)
+
+    sk = np.zeros((len(fdvec), len(c), nac))
+
     # ------------------------------------ 
     # ----------- Generate acq. grid -----------
     # ------------------------------------ 
+    for j in range(1, nac + 1):  # MATLAB 1-based indexing to Python 0-based
+        for i in range(1, len(fdvec) + 1):
+
+            pre_idcs = np.arange((j - 1) * nk, j * nk)  # Equivalent to MATLAB ((j-1)*nk+1):(j*nk)
+            tau_pre = tauvec[:len(pre_idcs)]  # Extract corresponding tau values
+            x = y[pre_idcs]  # Extract x values
+
+            beta = -fdvec[i - 1] / get_closest_fch(s['fcr'])  # Adjust for MATLAB 1-based indexing
+            fsd = (1 + beta) * fs  # Adjusted sample rate
+
+            # Resample using SciPy
+            x_resampled, tau_post = resample(x, len(tau_pre), t=tau_pre, window=None)
+
+            th_hat = 2 * np.pi * fdvec[i - 1] * tau_post  # Compute phase shift
+
+            x_tilde = x_resampled * np.exp(-1j * th_hat)  # Apply phase correction
+
+            # Zero-padding to Nk length
+            x_tilde = np.concatenate([x_tilde, np.zeros(nk - len(x_tilde), dtype=complex)])
+            x_tilde = x_tilde[:nk]  # Ensure length Nk
+
+            # FFT and processing
+            X_tilde = np.fft.fft(x_tilde)
+            Zr = X_tilde * np.conj(C)
+            sk = np.fft.ifft(Zr).T  # Transpose to match MATLAB behavior
+
+            sk[i - 1, :, j - 1] = sk[:len(c)]  # Store in sk
+
+    # Compute grid values
+    grids[:, :] = np.sum(np.abs(sk), axis=2)  # Summing over the 3rd dimension
 
     # ------------------------------------ 
-    # ----------- Process Acqiosition -----------
+    # ----------- Process Acquisition -----------
     # ------------------------------------ 
 
     #Find Peak, tau, and doppler
+    tau_prob = np.max(grids) #Find the maximum value.
+    fidx = np.argmax(grids) #Find the index of the maximum value.
+    
+    mx_val = np.max(tau_prob) #Find the maximum value.
+    tau_idx = np.argmax(tau_prob) #Find the index of the maximum value.
 
+    tau = tauvec[tau_idx]
+    fdcoarse = fdvec[fidx[tau_idx]]
+    
     #Find finer doppler
+    fdfine = fdcoarse  # Initial assignment (same value)
+
+    expSk2_fine = mx_val / nac
+
+    if s.fstep != 1:  # Finer look if step is not 1
+        fdvec_fine = np.arange(fdcoarse - np.floor(s.fstep / 2), 
+                            fdcoarse + np.floor(s.fstep / 2) + s.fstepFine, 
+                            s.fstepFine)
+
+        # Each column represents a different phase shift
+        thmat = 2 * np.pi * (tauvec - tauvec[nk - 1])[:, None] * fdvec_fine  # Match MATLAB broadcasting
+
+        z_fine = np.zeros(len(fdvec_fine))
+
+        ctau = np.roll(c, tau_idx - 1)  # Equivalent to MATLAB circshift(c, tau_idx-1)
+
+        for jj in range(1, nac + 1):
+            iidum = np.arange((jj - 1) * nk, jj * nk)  # MATLAB 1-based indexing to Python 0-based
+            
+            x1_shift = y[iidum] * np.exp(-1j * thmat[:len(iidum), :])
+            
+            z_fine[:] += np.abs(x1_shift.T @ ctau)
+
+        mx, fd_fine_idx = np.max(z_fine), np.argmax(z_fine)
+        expSk2_fine = mx / nac
+
+        fdfine = fdvec_fine[fd_fine_idx]  # Update fdfine if s.fstep != 1
 
     # ------------------------------------ 
     # ----------- Output -----------
-    # ------------------------------------ 
+    # ------------------------------------
+
+    ''' Create a dictionary to store the data (equivalent to MATLAB struct). '''
+    data = {
+        "grid": grids,
+        "tauvec": tauvec,
+        "fdvec": fdvec,
+        "fdfine": fdfine,
+        "tau": tau,
+        "nc": nc,
+        "sigma2_c": sigma2_c,
+        "pkvec": pkvec,
+        "sk": sk
+    }
+
+    # Plot if debugPltGrid_en is enabled
+    if debugPltGrid_en:
+        X, Y = np.meshgrid(tauvec, fdvec)  # Equivalent to MATLAB's meshgrid
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(X, Y, grids, cmap='viridis', edgecolor='none')
+        
+        # Optional: Configure lighting-like effect (not exactly like MATLAB's 'gouraud')
+        ax.set_xlabel('Tau')
+        ax.set_ylabel('Fd')
+        ax.set_zlabel('Grid Value')
+        plt.show()
