@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from get_closest_fch import get_closest_fch
 from gen_pss import gen_pss
 from gen_sss import gen_sss
-from get_closest_fch import get_closest_fch
 from scipy.signal import resample
 
 """

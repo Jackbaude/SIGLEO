@@ -6,3 +6,4 @@
 '''
 
 def gen_strlk_frame(s):
+    

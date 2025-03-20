@@ -8,7 +8,6 @@ import numpy as np
 -- Input --
 None. This function does not take in any input parameters.
 
-
 -- Output --
 - **pss** (numpy array): (N + ng) x 1 PSS. For Starlink specifically N = 1024, ng = 32.
 Returned sampled at 240e6 Hz.
@@ -163,3 +162,5 @@ def gen_pss():
         The original Matlab line was pss = [-pkCP; pkVec];
     '''
     pss = np.vstack([-pk_cp, pk_vec])
+
+    return pss
