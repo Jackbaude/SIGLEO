@@ -1,3 +1,8 @@
+''' fft_acq_strlk.py
+    Performs an FFT acquisition based on PSS and SSS.
+    Ported to Python from MATLAB by Jack R. Tschetter on 03/19/2025.
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 from get_closest_fch import get_closest_fch
@@ -5,6 +10,37 @@ from gen_pss import gen_pss
 from gen_sss import gen_sss
 from get_closest_fch import get_closest_fch
 from scipy.signal import resample
+
+"""
+-- Input --
+A Python dictionary (`s`) with the following keys:
+
+- **fsr** (float): Receiver sampling frequency in Hz.
+- **fcr** (float): Receiver center frequency in Hz.
+- **fmax** (float): Maximum frequency for frequency search in Hz.
+- **fstep** (float): Frequency step for frequency search in Hz.
+- **fstepFine** (float): Frequency step for fine frequency search in Hz.
+- **fmin** (float): Minimum frequency for frequency search in Hz.
+- **y** (numpy array): Ns x 1 vector of baseband data, where Ns corresponds to
+  samples at least equal in length to a Starlink frame in time.
+- **pfa** (float): False alarm probability used for the threshold to determine
+  if a signal is present for a PRN. The total acquisition false alarm probability.
+  The pfa for each search cell can be derived from this.
+
+-- Output --
+A Python dictionary containing:
+
+- **grid** (numpy array): F x Nk acquisition grid where F is created from `fmax`, `fmin`,
+  and `fstep`, and Nk is the number of samples of a Starlink frame sampled at 240 Msps.
+- **tauvec** (numpy array): Nk x 1 vector of considered delay times of Starlink time of
+  arrival of the first frame with respect to the data input beginning.
+- **fdvec** (numpy array): F x 1 vector of considered Doppler frequencies.
+- **fdfine** (float): Fine Doppler frequency estimate from peak.
+- **tau** (float): Time offset estimate from peak.
+- **nc** (int): Length of local replica.
+- **sigma2_c** (float): Variance of local replica (non-zero samples).
+- **pkvec** (numpy array): Local replica used for acquisition.
+"""
 
 def fft_acq_strlk(s):
     ''' Debugging flags
